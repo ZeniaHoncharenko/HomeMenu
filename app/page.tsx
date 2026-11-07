@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import Image from "next/image";
+import { readApiResponse } from "@/lib/api-response";
 import styles from "./page.module.css";
 
 type MealType = "Завтрак" | "Обед" | "Ужин" | "Прочее";
@@ -95,7 +96,7 @@ export default function Home() {
 
     try {
       const response = await fetch("/api/dishes", { cache: "no-store" });
-      const payload = await response.json();
+      const payload = await readApiResponse<{ error?: string; dishes?: unknown }>(response);
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось загрузить блюда.");
@@ -108,11 +109,6 @@ export default function Home() {
       setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    void loadDishes();
-  }, [isLoggedIn]);
 
   const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -129,6 +125,7 @@ export default function Home() {
 
     setLoginError("");
     setIsLoggedIn(true);
+    void loadDishes();
   };
 
   const handlePhotosChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -155,7 +152,7 @@ export default function Home() {
       const response = await fetch(`/api/dishes?id=${encodeURIComponent(dishId)}`, {
         method: "DELETE",
       });
-      const payload = await response.json();
+      const payload = await readApiResponse<{ error?: string }>(response);
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось удалить блюдо.");
@@ -179,7 +176,7 @@ export default function Home() {
       method: "POST",
       body: formData,
     });
-    const payload = await response.json();
+    const payload = await readApiResponse<{ error?: string; files?: unknown }>(response);
 
     if (!response.ok) {
       throw new Error(payload.error ?? "Не удалось загрузить фото.");
@@ -229,7 +226,7 @@ export default function Home() {
           photoKeys,
         }),
       });
-      const payload = await response.json();
+      const payload = await readApiResponse<{ error?: string; dish?: Dish }>(response);
 
       if (!response.ok) {
         throw new Error(payload.error ?? "Не удалось сохранить блюдо.");

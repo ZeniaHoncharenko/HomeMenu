@@ -2,26 +2,27 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { attachDatabasePool } from "@vercel/functions";
 import { Pool } from "pg";
 
-export const STORAGE_BUCKET = "assets";
+export const STORAGE_BUCKET = "menu1";
 
 let pool: Pool | null = null;
 let s3: S3Client | null = null;
 
-const requiredEnv = [
-  "DATABASE_URL",
+const databaseEnv = ["DATABASE_URL"] as const;
+const storageEnv = [
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
   "AWS_ENDPOINT_URL_S3",
   "AWS_REGION",
 ] as const;
 
-const getMissingEnv = () =>
-  requiredEnv.filter((key) => {
+const getMissingEnv = (keys: readonly string[]) =>
+  keys.filter((key) => {
     const value = process.env[key];
     return !value || !value.trim();
   });
 
-export const getMissingNeonEnv = () => getMissingEnv();
+export const getMissingDatabaseEnv = () => getMissingEnv(databaseEnv);
+export const getMissingStorageEnv = () => getMissingEnv(storageEnv);
 
 export const getDatabasePool = () => {
   if (pool) return pool;
