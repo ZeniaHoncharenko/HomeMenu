@@ -87,6 +87,30 @@
   background-color: #1d4ed8;
 }
 
+.secondaryButton {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background-color: #fff;
+  color: #0f172a;
+  padding: 11px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.secondaryButton:hover {
+  background-color: #f1f5f9;
+}
+
+.dangerButton {
+  border-color: #fecaca;
+  color: #b91c1c;
+}
+
+.dangerButton:hover {
+  background-color: #fef2f2;
+}
+
 .error {
   color: #b91c1c;
   font-size: 14px;
@@ -130,6 +154,12 @@
   line-height: 1.35;
 }
 
+.dishActions {
+  margin-top: 4px;
+  display: grid;
+  gap: 8px;
+}
+
 .photoGrid {
   margin-top: 6px;
   display: grid;
@@ -169,6 +199,15 @@
   .button {
     width: fit-content;
   }
+
+  .secondaryButton {
+    width: fit-content;
+  }
+
+  .dishActions {
+    display: flex;
+    gap: 8px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -205,6 +244,25 @@
   .dishCard {
     background-color: #111827;
     border-color: #334155;
+  }
+
+  .secondaryButton {
+    background-color: #0f172a;
+    border-color: #475569;
+    color: #f8fafc;
+  }
+
+  .secondaryButton:hover {
+    background-color: #1e293b;
+  }
+
+  .dangerButton {
+    border-color: #7f1d1d;
+    color: #fca5a5;
+  }
+
+  .dangerButton:hover {
+    background-color: #450a0a;
   }
 
   .emptyState {

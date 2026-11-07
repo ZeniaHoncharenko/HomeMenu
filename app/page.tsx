@@ -76,6 +76,7 @@ export default function Home() {
   const [rating, setRating] = useState("5");
   const [canTakeToWork, setCanTakeToWork] = useState(false);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [editingDishId, setEditingDishId] = useState<string | null>(null);
 
   const mealGroups = useMemo(
     () =>
@@ -111,6 +112,11 @@ export default function Home() {
       return;
     }
 
+    if (login.trim() !== "admin" || password !== "20032004") {
+      setLoginError("Неверный логин или пароль.");
+      return;
+    }
+
     setLoginError("");
     setIsLoggedIn(true);
   };
@@ -118,6 +124,35 @@ export default function Home() {
   const handlePhotosChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFiles = event.target.files ? Array.from(event.target.files) : [];
     setPhotoFiles(nextFiles);
+  };
+
+  const resetDishForm = () => {
+    setEditingDishId(null);
+    setDishName("");
+    setIngredients("");
+    setRecipe("");
+    setRating("5");
+    setCanTakeToWork(false);
+    setPhotoFiles([]);
+  };
+
+  const handleEditDish = (dish: Dish) => {
+    setEditingDishId(dish.id);
+    setDishName(dish.name);
+    setMealType(dish.mealType);
+    setIngredients(dish.ingredients);
+    setRecipe(dish.recipe);
+    setRating(String(dish.rating));
+    setCanTakeToWork(dish.canTakeToWork);
+    setPhotoFiles([]);
+  };
+
+  const handleDeleteDish = (dishId: string) => {
+    setDishes((prevDishes) => prevDishes.filter((dish) => dish.id !== dishId));
+
+    if (editingDishId === dishId) {
+      resetDishForm();
+    }
   };
 
   const handleCreateDish = async (event: FormEvent<HTMLFormElement>) => {
@@ -136,7 +171,32 @@ export default function Home() {
       return;
     }
 
-    const photos = await Promise.all(photoFiles.map((file) => readFileAsDataUrl(file)));
+    const hasNewPhotos = photoFiles.length > 0;
+    const photos = hasNewPhotos
+      ? (await Promise.all(photoFiles.map((file) => readFileAsDataUrl(file)))).filter(Boolean)
+      : null;
+
+    if (editingDishId) {
+      setDishes((prevDishes) =>
+        prevDishes.map((dish) =>
+          dish.id === editingDishId
+            ? {
+                ...dish,
+                name: trimmedDish,
+                mealType,
+                ingredients: trimmedIngredients,
+                recipe: trimmedRecipe,
+                rating: numericRating,
+                canTakeToWork,
+                photos: photos ?? dish.photos,
+              }
+            : dish,
+        ),
+      );
+
+      resetDishForm();
+      return;
+    }
 
     setDishes((prevDishes) => [
       {
@@ -147,17 +207,12 @@ export default function Home() {
         recipe: trimmedRecipe,
         rating: numericRating,
         canTakeToWork,
-        photos: photos.filter(Boolean),
+        photos: photos ?? [],
       },
       ...prevDishes,
     ]);
 
-    setDishName("");
-    setIngredients("");
-    setRecipe("");
-    setRating("5");
-    setCanTakeToWork(false);
-    setPhotoFiles([]);
+    resetDishForm();
   };
 
   return (
@@ -187,7 +242,7 @@ export default function Home() {
         ) : (
           <div className={styles.content}>
             <form className={styles.card} onSubmit={handleCreateDish}>
-              <h2>Добавить блюдо</h2>
+              <h2>{editingDishId ? "Редактировать блюдо" : "Добавить блюдо"}</h2>
               <label className={styles.field}>
                 Название блюда
                 <input
@@ -247,8 +302,13 @@ export default function Home() {
                 <input type="file" accept="image/*" multiple onChange={handlePhotosChange} />
               </label>
               <button type="submit" className={styles.button}>
-                Добавить
+                {editingDishId ? "Сохранить изменения" : "Добавить"}
               </button>
+              {editingDishId && (
+                <button type="button" className={styles.secondaryButton} onClick={resetDishForm}>
+                  Отменить редактирование
+                </button>
+              )}
             </form>
 
             <section className={styles.card}>
@@ -299,6 +359,22 @@ export default function Home() {
                                 ))}
                               </div>
                             )}
+                            <div className={styles.dishActions}>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={() => handleEditDish(dish)}
+                              >
+                                Редактировать
+                              </button>
+                              <button
+                                type="button"
+                                className={`${styles.secondaryButton} ${styles.dangerButton}`}
+                                onClick={() => handleDeleteDish(dish.id)}
+                              >
+                                Удалить
+                              </button>
+                            </div>
                           </li>
                         ))}
                       </ul>
