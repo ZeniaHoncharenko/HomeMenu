@@ -1,32 +1,40 @@
 .page {
   display: flex;
   justify-content: center;
-  padding: 32px 16px;
+  padding: 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  min-height: 100%;
 }
 
 .main {
   width: 100%;
-  max-width: 900px;
+  max-width: 1120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .title {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+  font-size: 28px;
+  line-height: 1.2;
 }
 
 .content {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .card {
-  background-color: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.92);
+  border: 1px solid #dbeafe;
+  border-radius: 16px;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  box-shadow: 0 8px 20px rgba(30, 41, 59, 0.08);
 }
 
 .field {
@@ -34,24 +42,49 @@
   flex-direction: column;
   gap: 6px;
   font-size: 14px;
+  color: #334155;
 }
 
 .field input,
-.field select {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 8px 10px;
+.field select,
+.field textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
   font-size: 14px;
+  color: #0f172a;
+  background-color: #f8fafc;
+  width: 100%;
+}
+
+.field textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.checkboxField {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkboxField input {
+  width: auto;
 }
 
 .button {
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: #2563eb;
   color: #fff;
-  padding: 10px 14px;
+  padding: 11px 16px;
+  font-weight: 600;
   cursor: pointer;
-  width: fit-content;
+  width: 100%;
+}
+
+.button:hover {
+  background-color: #1d4ed8;
 }
 
 .error {
@@ -61,26 +94,124 @@
 
 .menuGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
+  grid-template-columns: 1fr;
+  gap: 12px;
 }
 
-.menuGrid ul {
-  margin-top: 8px;
-  padding-left: 16px;
+.mealColumn {
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 12px;
+}
+
+.dishList {
+  margin-top: 10px;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.dishCard {
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  padding: 10px;
   display: grid;
   gap: 6px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .card {
-    background-color: #111827;
-    border-color: #374151;
+.dishCard h4 {
+  font-size: 16px;
+}
+
+.dishCard p {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.photoGrid {
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.photoGrid img {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.emptyState {
+  color: #64748b;
+  font-size: 14px;
+}
+
+@media (min-width: 900px) {
+  .page {
+    padding: 24px;
   }
+
+  .content {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .menuGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .button {
+    width: fit-content;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    background: linear-gradient(180deg, #0f172a 0%, #020617 100%);
+  }
+
+  .title {
+    color: #e2e8f0;
+  }
+
+  .card {
+    background-color: #0f172acc;
+    border-color: #334155;
+  }
+
+  .field {
+    color: #cbd5e1;
+  }
+
   .field input,
-  .field select {
+  .field select,
+  .field textarea {
+    background-color: #0f172a;
+    color: #f8fafc;
+    border-color: #475569;
+  }
+
+  .mealColumn {
+    background-color: #0f172a;
+    border-color: #334155;
+  }
+
+  .dishCard {
     background-color: #111827;
-    color: #f9fafb;
-    border-color: #4b5563;
+    border-color: #334155;
+  }
+
+  .emptyState {
+    color: #94a3b8;
+  }
+
+  .photoGrid img {
+    border-color: #475569;
   }
 }
