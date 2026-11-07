@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import styles from "./page.module.css";
 
@@ -15,68 +15,40 @@ type Dish = {
   rating: number;
   canTakeToWork: boolean;
   photos: string[];
+  photoKeys: string[];
 };
-
-const initialDishes: Dish[] = [
-  {
-    id: "breakfast-oatmeal",
-    name: "Овсяная каша с фруктами",
-    mealType: "Завтрак",
-    ingredients: "Овсяные хлопья, молоко, банан, яблоко, мед",
-    recipe:
-      "Сварить овсяные хлопья на молоке. Нарезать фрукты и добавить сверху вместе с медом.",
-    rating: 8,
-    canTakeToWork: true,
-    photos: [],
-  },
-  {
-    id: "lunch-borscht",
-    name: "Борщ",
-    mealType: "Обед",
-    ingredients: "Свекла, картофель, капуста, морковь, лук, томат",
-    recipe:
-      "Сварить бульон, добавить овощи по очереди и томат. Довести до готовности и дать настояться.",
-    rating: 9,
-    canTakeToWork: true,
-    photos: [],
-  },
-  {
-    id: "dinner-fish",
-    name: "Запеченная рыба",
-    mealType: "Ужин",
-    ingredients: "Филе рыбы, лимон, специи, оливковое масло",
-    recipe: "Замариновать рыбу со специями и лимоном, запекать 20-25 минут.",
-    rating: 7,
-    canTakeToWork: false,
-    photos: [],
-  },
-];
 
 const mealTypes: MealType[] = ["Завтрак", "Обед", "Ужин", "Прочее"];
 
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Не удалось прочитать файл."));
-    reader.readAsDataURL(file);
-  });
+const emptyDishForm = {
+  dishName: "",
+  mealType: "Завтрак" as MealType,
+  ingredients: "",
+  recipe: "",
+  rating: "5",
+  canTakeToWork: false,
+};
 
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [loginError, setLoginError] = useState("");
-  const [dishes, setDishes] = useState(initialDishes);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [dataError, setDataError] = useState("");
+  const [dishes, setDishes] = useState<Dish[]>([]);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [dishName, setDishName] = useState("");
-  const [mealType, setMealType] = useState<MealType>("Завтрак");
-  const [ingredients, setIngredients] = useState("");
-  const [recipe, setRecipe] = useState("");
-  const [rating, setRating] = useState("5");
-  const [canTakeToWork, setCanTakeToWork] = useState(false);
+  const [dishName, setDishName] = useState(emptyDishForm.dishName);
+  const [mealType, setMealType] = useState<MealType>(emptyDishForm.mealType);
+  const [ingredients, setIngredients] = useState(emptyDishForm.ingredients);
+  const [recipe, setRecipe] = useState(emptyDishForm.recipe);
+  const [rating, setRating] = useState(emptyDishForm.rating);
+  const [canTakeToWork, setCanTakeToWork] = useState(emptyDishForm.canTakeToWork);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
+  const [editingPhotoKeys, setEditingPhotoKeys] = useState<string[]>([]);
 
   const mealGroups = useMemo(
     () =>
@@ -102,7 +74,45 @@ export default function Home() {
       }),
     [dishes, searchTerm],
   );
+
   const hasResults = mealGroups.some(([, items]) => items.length > 0);
+
+  const resetDishForm = () => {
+    setEditingDishId(null);
+    setEditingPhotoKeys([]);
+    setDishName(emptyDishForm.dishName);
+    setMealType(emptyDishForm.mealType);
+    setIngredients(emptyDishForm.ingredients);
+    setRecipe(emptyDishForm.recipe);
+    setRating(emptyDishForm.rating);
+    setCanTakeToWork(emptyDishForm.canTakeToWork);
+    setPhotoFiles([]);
+  };
+
+  const loadDishes = async () => {
+    setIsLoading(true);
+    setDataError("");
+
+    try {
+      const response = await fetch("/api/dishes", { cache: "no-store" });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Не удалось загрузить блюда.");
+      }
+
+      setDishes(Array.isArray(payload.dishes) ? payload.dishes : []);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Не удалось загрузить блюда.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    void loadDishes();
+  }, [isLoggedIn]);
 
   const handleLoginSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -126,18 +136,9 @@ export default function Home() {
     setPhotoFiles(nextFiles);
   };
 
-  const resetDishForm = () => {
-    setEditingDishId(null);
-    setDishName("");
-    setIngredients("");
-    setRecipe("");
-    setRating("5");
-    setCanTakeToWork(false);
-    setPhotoFiles([]);
-  };
-
   const handleEditDish = (dish: Dish) => {
     setEditingDishId(dish.id);
+    setEditingPhotoKeys(dish.photoKeys);
     setDishName(dish.name);
     setMealType(dish.mealType);
     setIngredients(dish.ingredients);
@@ -147,16 +148,55 @@ export default function Home() {
     setPhotoFiles([]);
   };
 
-  const handleDeleteDish = (dishId: string) => {
-    setDishes((prevDishes) => prevDishes.filter((dish) => dish.id !== dishId));
+  const handleDeleteDish = async (dishId: string) => {
+    setDataError("");
 
-    if (editingDishId === dishId) {
-      resetDishForm();
+    try {
+      const response = await fetch(`/api/dishes?id=${encodeURIComponent(dishId)}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Не удалось удалить блюдо.");
+      }
+
+      setDishes((prevDishes) => prevDishes.filter((dish) => dish.id !== dishId));
+
+      if (editingDishId === dishId) {
+        resetDishForm();
+      }
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Не удалось удалить блюдо.");
     }
+  };
+
+  const uploadPhotos = async (files: File[]) => {
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+
+    const response = await fetch("/api/uploads", {
+      method: "POST",
+      body: formData,
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Не удалось загрузить фото.");
+    }
+
+    if (!Array.isArray(payload.files)) {
+      return [] as string[];
+    }
+
+    return payload.files
+      .map((item: { key?: string }) => item.key)
+      .filter((item: string | undefined): item is string => Boolean(item));
   };
 
   const handleCreateDish = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setDataError("");
 
     const trimmedDish = dishName.trim();
     const trimmedIngredients = ingredients.trim();
@@ -171,48 +211,45 @@ export default function Home() {
       return;
     }
 
-    const hasNewPhotos = photoFiles.length > 0;
-    const photos = hasNewPhotos
-      ? (await Promise.all(photoFiles.map((file) => readFileAsDataUrl(file)))).filter(Boolean)
-      : null;
+    try {
+      const photoKeys = photoFiles.length > 0 ? await uploadPhotos(photoFiles) : editingPhotoKeys;
+      const response = await fetch("/api/dishes", {
+        method: editingDishId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: editingDishId ?? undefined,
+          name: trimmedDish,
+          mealType,
+          ingredients: trimmedIngredients,
+          recipe: trimmedRecipe,
+          rating: numericRating,
+          canTakeToWork,
+          photoKeys,
+        }),
+      });
+      const payload = await response.json();
 
-    if (editingDishId) {
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Не удалось сохранить блюдо.");
+      }
+
+      const savedDish: Dish | undefined = payload.dish;
+      if (!savedDish) {
+        throw new Error("Ответ сервера не содержит блюдо.");
+      }
+
       setDishes((prevDishes) =>
-        prevDishes.map((dish) =>
-          dish.id === editingDishId
-            ? {
-                ...dish,
-                name: trimmedDish,
-                mealType,
-                ingredients: trimmedIngredients,
-                recipe: trimmedRecipe,
-                rating: numericRating,
-                canTakeToWork,
-                photos: photos ?? dish.photos,
-              }
-            : dish,
-        ),
+        editingDishId
+          ? prevDishes.map((dish) => (dish.id === editingDishId ? savedDish : dish))
+          : [savedDish, ...prevDishes],
       );
 
       resetDishForm();
-      return;
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "Не удалось сохранить блюдо.");
     }
-
-    setDishes((prevDishes) => [
-      {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        name: trimmedDish,
-        mealType,
-        ingredients: trimmedIngredients,
-        recipe: trimmedRecipe,
-        rating: numericRating,
-        canTakeToWork,
-        photos: photos ?? [],
-      },
-      ...prevDishes,
-    ]);
-
-    resetDishForm();
   };
 
   return (
@@ -321,68 +358,73 @@ export default function Home() {
                   placeholder="Искать по названию, составу или рецепту"
                 />
               </label>
-              <div className={styles.menuGrid}>
-                {mealGroups.map(([meal, items]) => (
-                  <div key={meal} className={styles.mealColumn}>
-                    <h3>{meal}</h3>
-                    {items.length === 0 ? (
-                      <p className={styles.emptyState}>Нет блюд</p>
-                    ) : (
-                      <ul className={styles.dishList}>
-                        {items.map((dish) => (
-                          <li key={dish.id} className={styles.dishCard}>
-                            <h4>{dish.name}</h4>
-                            <p>
-                              <strong>Состав:</strong> {dish.ingredients}
-                            </p>
-                            <p>
-                              <strong>Рецепт:</strong> {dish.recipe}
-                            </p>
-                            <p>
-                              <strong>Оценка:</strong> {dish.rating}/10
-                            </p>
-                            <p>
-                              <strong>На работу:</strong>{" "}
-                              {dish.canTakeToWork ? "Да" : "Нет"}
-                            </p>
-                            {dish.photos.length > 0 && (
-                              <div className={styles.photoGrid}>
-                                {dish.photos.map((photo, index) => (
-                                  <Image
-                                    key={`${dish.id}-photo-${index}`}
-                                    src={photo}
-                                    alt={`${dish.name} фото ${index + 1}`}
-                                    width={320}
-                                    height={220}
-                                    sizes="(max-width: 900px) 50vw, 220px"
-                                  />
-                                ))}
+              {isLoading && <p className={styles.emptyState}>Загрузка блюд...</p>}
+              {dataError && <p className={styles.error}>{dataError}</p>}
+              {!isLoading && (
+                <div className={styles.menuGrid}>
+                  {mealGroups.map(([meal, items]) => (
+                    <div key={meal} className={styles.mealColumn}>
+                      <h3>{meal}</h3>
+                      {items.length === 0 ? (
+                        <p className={styles.emptyState}>Нет блюд</p>
+                      ) : (
+                        <ul className={styles.dishList}>
+                          {items.map((dish) => (
+                            <li key={dish.id} className={styles.dishCard}>
+                              <h4>{dish.name}</h4>
+                              <p>
+                                <strong>Состав:</strong> {dish.ingredients}
+                              </p>
+                              <p>
+                                <strong>Рецепт:</strong> {dish.recipe}
+                              </p>
+                              <p>
+                                <strong>Оценка:</strong> {dish.rating}/10
+                              </p>
+                              <p>
+                                <strong>На работу:</strong> {dish.canTakeToWork ? "Да" : "Нет"}
+                              </p>
+                              {dish.photos.length > 0 && (
+                                <div className={styles.photoGrid}>
+                                  {dish.photos.map((photo, index) => (
+                                    <Image
+                                      key={`${dish.id}-photo-${index}`}
+                                      src={photo}
+                                      alt={`${dish.name} фото ${index + 1}`}
+                                      width={320}
+                                      height={220}
+                                      sizes="(max-width: 900px) 50vw, 220px"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                              <div className={styles.dishActions}>
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() => handleEditDish(dish)}
+                                >
+                                  Редактировать
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`${styles.secondaryButton} ${styles.dangerButton}`}
+                                  onClick={() => handleDeleteDish(dish.id)}
+                                >
+                                  Удалить
+                                </button>
                               </div>
-                            )}
-                            <div className={styles.dishActions}>
-                              <button
-                                type="button"
-                                className={styles.secondaryButton}
-                                onClick={() => handleEditDish(dish)}
-                              >
-                                Редактировать
-                              </button>
-                              <button
-                                type="button"
-                                className={`${styles.secondaryButton} ${styles.dangerButton}`}
-                                onClick={() => handleDeleteDish(dish.id)}
-                              >
-                                Удалить
-                              </button>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-              {!hasResults && <p className={styles.emptyState}>По запросу ничего не найдено.</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {!isLoading && !hasResults && (
+                <p className={styles.emptyState}>По запросу ничего не найдено.</p>
+              )}
             </section>
           </div>
         )}
